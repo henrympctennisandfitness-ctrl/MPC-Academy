@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { MembersView } from "@/features/coach";
+import { MembersIndex } from "@/features/members";
 
 export const metadata: Metadata = { title: "Coach · Members" };
 
+/** Coaches see the full roster and can open any member profile. */
 export default function CoachMembersPage() {
-  return <MembersView />;
+  return <MembersIndex basePath="/coach/members" />;
 }

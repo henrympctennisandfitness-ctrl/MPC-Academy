@@ -26,7 +26,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { id: "submit", label: "Submit", href: "/submit", icon: Upload },
   { id: "progress", label: "Progress", href: "/progress", icon: TrendingUp },
   { id: "library", label: "Library", href: "/library", icon: BookOpen },
-  { id: "settings", label: "You", href: "/settings", icon: User },
+  { id: "settings", label: "You", href: "/profile", icon: User },
 ];
 
 /**
