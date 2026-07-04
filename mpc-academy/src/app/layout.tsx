@@ -30,6 +30,8 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // AUTH (future): wrap the returned tree in your auth provider when
+  // reintroducing real authentication.
   return (
     <html lang="en" className={inter.variable}>
       <body className="bg-background font-sans text-ink">

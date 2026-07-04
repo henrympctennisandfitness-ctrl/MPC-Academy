@@ -4,12 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { COACH_NAV } from "../constants";
 import { useCoach } from "../store";
+import { getCurrentUser } from "@/lib/access";
 import { cn } from "@/lib/utils";
 
 /** Persistent left navigation for the coach area. Hidden below `lg`. */
 export function CoachSidebar() {
   const pathname = usePathname();
   const { counts } = useCoach();
+
+  // AUTH (future): replace the mock user with the real session user.
+  const user = getCurrentUser();
+  const initials = user.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2);
 
   const isActive = (href: string) =>
     href === "/coach" ? pathname === "/coach" : pathname.startsWith(href);
@@ -70,14 +79,14 @@ export function CoachSidebar() {
         })}
       </nav>
 
-      {/* Coach identity (placeholder — no auth yet) */}
+      {/* Mock signed-in coach (no real auth yet — see @/lib/access) */}
       <div className="mt-auto flex items-center gap-3 border-t border-line px-2.5 pt-4">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-brand text-[12px] font-semibold text-white">
-          MC
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-semibold text-white">
+          {initials}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold">Coach Marta</p>
-          <p className="text-[11px] text-muted">Head Coach</p>
+          <p className="truncate text-[13px] font-semibold">{user.name}</p>
+          <p className="text-[11px] text-muted">{user.roleLabel}</p>
         </div>
       </div>
     </aside>

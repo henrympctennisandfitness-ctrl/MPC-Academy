@@ -4,7 +4,7 @@ import { Card } from "@/components/ui";
 
 /**
  * Coach Studio entry card for the member dashboard. Render this only when the
- * current user has coach access — see hasCoachAccess() in @/lib/access.
+ * current user has coach access — see canAccessCoach() in @/lib/access.
  */
 export function CoachStudioCard() {
   return (

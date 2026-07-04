@@ -4,32 +4,42 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppShell } from "./AppShell";
 import { CoachAccessDenied } from "./CoachAccessDenied";
+import { DevRoleIndicator } from "@/components/DevRoleIndicator";
 import { CoachShell } from "@/features/coach";
-import { hasCoachAccess } from "@/lib/access";
+import { canAccessCoach } from "@/lib/access";
 
 /**
- * Chooses the app chrome based on the route, and gates Coach Studio:
+ * Chooses the app chrome based on the route, and gates Coach Studio by role:
  *   /coach/*  → coach access?  CoachShell  :  member shell + Access Denied
  *   else      → AppShell (member portal shell)
  *
- * The coach guard is a mock (client-side, based on @/lib/access). It keeps the
- * UI honest for now; real enforcement should move to server middleware when
- * authentication is added.
+ * Access comes from the MOCK current user (@/lib/access). There is no real auth
+ * yet, so this guard is client-side only.
+ *
+ * AUTH (future): replace canAccessCoach() with the real session role, and add
+ * server-side enforcement (middleware) so /coach is protected at the edge.
  */
 export function RootShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isCoach = pathname === "/coach" || pathname.startsWith("/coach/");
 
+  let content: ReactNode;
   if (isCoach) {
-    if (!hasCoachAccess()) {
-      return (
-        <AppShell>
-          <CoachAccessDenied />
-        </AppShell>
-      );
-    }
-    return <CoachShell>{children}</CoachShell>;
+    content = canAccessCoach() ? (
+      <CoachShell>{children}</CoachShell>
+    ) : (
+      <AppShell>
+        <CoachAccessDenied />
+      </AppShell>
+    );
+  } else {
+    content = <AppShell>{children}</AppShell>;
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <>
+      {content}
+      <DevRoleIndicator />
+    </>
+  );
 }

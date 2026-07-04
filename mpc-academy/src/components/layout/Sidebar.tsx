@@ -4,11 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PRIMARY_NAV, SECONDARY_NAV, type NavItem } from "@/lib/constants";
 import { APP } from "@/lib/config";
+import { getCurrentUser } from "@/lib/access";
 import { cn } from "@/lib/utils";
 
 /** Persistent left navigation. Hidden below the `lg` breakpoint. */
 export function Sidebar() {
   const pathname = usePathname();
+
+  // AUTH (future): replace the mock user with the real session user.
+  const user = getCurrentUser();
+  const initials = user.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -68,6 +77,17 @@ export function Sidebar() {
           <NavLink key={item.id} item={item} />
         ))}
       </nav>
+
+      {/* Mock signed-in identity (no real auth yet — see @/lib/access) */}
+      <div className="mt-4 flex items-center gap-3 border-t border-line pt-4">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-semibold text-white">
+          {initials}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-semibold">{user.name}</p>
+          <p className="text-[11px] text-muted">{user.roleLabel}</p>
+        </div>
+      </div>
     </aside>
   );
 }
