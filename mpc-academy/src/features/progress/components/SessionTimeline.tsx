@@ -1,15 +1,56 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Quote } from "lucide-react";
-import { SESSIONS } from "../data";
+import { Quote, Inbox, AlertCircle } from "lucide-react";
+import type { MemberSession } from "../store";
+
+interface SessionTimelineProps {
+  sessions: MemberSession[];
+  loading: boolean;
+  error: string | null;
+}
 
 /** Vertical timeline of past coaching sessions, each with the coach's note. */
-export function SessionTimeline() {
+export function SessionTimeline({ sessions, loading, error }: SessionTimelineProps) {
+  if (loading) {
+    return (
+      <div className="grid gap-3" aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-[116px] animate-pulse rounded-2xl border border-line bg-surface"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line py-12 text-center">
+        <AlertCircle size={22} className="text-muted" />
+        <p className="mt-3 text-[14px] font-semibold">Couldn&apos;t load your history</p>
+        <p className="mt-1 text-[13px] text-muted">{error}</p>
+      </div>
+    );
+  }
+
+  if (sessions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line py-12 text-center">
+        <Inbox size={22} className="text-muted" />
+        <p className="mt-3 text-[14px] font-semibold">No reviews yet</p>
+        <p className="mt-1 text-[13px] text-muted">
+          Submit an analysis and your coach&apos;s feedback will appear here.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      {SESSIONS.map((s, i) => {
-        const last = i === SESSIONS.length - 1;
+      {sessions.map((s, i) => {
+        const last = i === sessions.length - 1;
         return (
           <motion.div
             key={s.id}
@@ -35,9 +76,11 @@ export function SessionTimeline() {
                       {s.date} · {s.coach}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-brand-tint px-2.5 py-1 text-[12.5px] font-bold tabular-nums text-brand">
-                    {s.rating}
-                  </span>
+                  {s.rating !== null && (
+                    <span className="shrink-0 rounded-full bg-brand-tint px-2.5 py-1 text-[12.5px] font-bold tabular-nums text-brand">
+                      {s.rating}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-3 flex gap-2 rounded-xl bg-background px-3.5 py-3">

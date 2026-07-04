@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Search, Inbox } from "lucide-react";
+import { Search, Inbox, Loader2, AlertCircle } from "lucide-react";
 import { useCoach } from "../store";
 import { ANALYSIS_FILTERS } from "../constants";
 import { SubmissionCard } from "./SubmissionCard";
@@ -22,7 +22,7 @@ const STATUS_TABS: Array<"All" | SubmissionStatus> = ["All", "New", "In Review"]
 
 /** Search + filters + submission cards + review drawer for one scope. */
 export function SubmissionList({ scope, title, subtitle }: SubmissionListProps) {
-  const { submissions, setStatus } = useCoach();
+  const { submissions, setStatus, loading, error, refresh } = useCoach();
 
   const [query, setQuery] = useState("");
   const [type, setType] = useState("All");
@@ -61,7 +61,7 @@ export function SubmissionList({ scope, title, subtitle }: SubmissionListProps) 
     : null;
 
   const openReview = (s: CoachSubmission) => {
-    if (s.status === "New") setStatus(s.id, "In Review");
+    if (s.status === "New") void setStatus(s.id, "In Review");
     setFocusFeedback(false);
     setActive(s);
   };
@@ -69,9 +69,10 @@ export function SubmissionList({ scope, title, subtitle }: SubmissionListProps) 
     setFocusFeedback(true);
     setActive(s);
   };
-  const markComplete = (s: CoachSubmission) => {
-    setStatus(s.id, "Completed");
-    toast.success("Marked complete");
+  const markComplete = async (s: CoachSubmission) => {
+    const ok = await setStatus(s.id, "Completed");
+    if (ok) toast.success("Marked complete");
+    else toast.error("Couldn't update the submission. Please try again.");
   };
 
   return (
@@ -133,7 +134,31 @@ export function SubmissionList({ scope, title, subtitle }: SubmissionListProps) 
       )}
 
       {/* List */}
-      {filtered.length > 0 ? (
+      {loading ? (
+        <div className="grid gap-3" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-[132px] animate-pulse rounded-2xl border border-line bg-surface"
+            />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line py-16 text-center">
+          <span className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-background">
+            <AlertCircle size={22} className="text-muted" />
+          </span>
+          <p className="text-[15px] font-semibold">Couldn&apos;t load submissions</p>
+          <p className="mt-1 text-[13.5px] text-muted">{error}</p>
+          <button
+            onClick={() => void refresh()}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+          >
+            <Loader2 size={15} />
+            Try again
+          </button>
+        </div>
+      ) : filtered.length > 0 ? (
         <div className="grid gap-3">
           {filtered.map((s, i) => (
             <motion.div

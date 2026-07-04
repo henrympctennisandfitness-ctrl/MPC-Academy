@@ -4,62 +4,121 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import {
-  SUBMISSIONS,
-  MEMBERS,
+  fetchSubmissions,
+  updateStatus as apiUpdateStatus,
+  updateFeedback as apiUpdateFeedback,
+} from "@/services/google";
+import {
   type CoachSubmission,
   type CoachMember,
   type SubmissionStatus,
 } from "./data";
+import { toCoachSubmission, deriveMembers } from "./adapters";
 
 interface CoachContextValue {
   submissions: CoachSubmission[];
   members: CoachMember[];
   counts: { today: number; pending: number; completed: number; members: number };
-  setStatus: (id: string, status: SubmissionStatus) => void;
-  returnFeedback: (id: string, feedback: string) => void;
+  loading: boolean;
+  error: string | null;
+  /** Reload from Google Sheets. */
+  refresh: () => Promise<void>;
+  /** Update a submission's status; returns false (and reverts) on failure. */
+  setStatus: (id: string, status: SubmissionStatus) => Promise<boolean>;
+  /** Return written feedback and mark complete; false (and reverts) on failure. */
+  returnFeedback: (id: string, feedback: string) => Promise<boolean>;
 }
 
 const CoachContext = createContext<CoachContextValue | null>(null);
 
 /**
- * Provides coach submission state to every screen under /coach so a status
- * change on one view is reflected on the others within the session.
+ * Provides coach submission state to every screen under /coach. Submissions are
+ * loaded live from Google Sheets; every coach action writes straight back to
+ * the Sheet, with an optimistic UI update that reverts if the write fails.
  */
 export function CoachProvider({ children }: { children: ReactNode }) {
-  const [submissions, setSubmissions] = useState<CoachSubmission[]>(SUBMISSIONS);
+  const [submissions, setSubmissions] = useState<CoachSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const setStatus = useCallback((id: string, status: SubmissionStatus) => {
-    setSubmissions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status } : s)),
-    );
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    const res = await fetchSubmissions();
+    if (res.ok && res.data) {
+      setSubmissions(res.data.map(toCoachSubmission));
+    } else {
+      setError(res.error ?? "Couldn't load submissions.");
+    }
+    if (!silent) setLoading(false);
   }, []);
 
-  const returnFeedback = useCallback((id: string, feedback: string) => {
-    setSubmissions((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, feedback, status: "Completed" } : s,
-      ),
-    );
-  }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const setStatus = useCallback(
+    async (id: string, status: SubmissionStatus) => {
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status } : s)),
+      );
+      const res = await apiUpdateStatus(id, status);
+      if (!res.ok) {
+        await load(true); // reload truth from the Sheet
+        return false;
+      }
+      return true;
+    },
+    [load],
+  );
+
+  const returnFeedback = useCallback(
+    async (id: string, feedback: string) => {
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, feedback, status: "Completed" } : s,
+        ),
+      );
+      const res = await apiUpdateFeedback(id, feedback);
+      if (!res.ok) {
+        await load(true);
+        return false;
+      }
+      return true;
+    },
+    [load],
+  );
+
+  const members = useMemo(() => deriveMembers(submissions), [submissions]);
 
   const counts = useMemo(
     () => ({
       today: submissions.filter((s) => s.today && s.status !== "Completed").length,
       pending: submissions.filter((s) => s.status !== "Completed").length,
       completed: submissions.filter((s) => s.status === "Completed").length,
-      members: MEMBERS.length,
+      members: members.length,
     }),
-    [submissions],
+    [submissions, members],
   );
 
   const value = useMemo(
-    () => ({ submissions, members: MEMBERS, counts, setStatus, returnFeedback }),
-    [submissions, counts, setStatus, returnFeedback],
+    () => ({
+      submissions,
+      members,
+      counts,
+      loading,
+      error,
+      refresh: () => load(),
+      setStatus,
+      returnFeedback,
+    }),
+    [submissions, members, counts, loading, error, load, setStatus, returnFeedback],
   );
 
   return <CoachContext.Provider value={value}>{children}</CoachContext.Provider>;

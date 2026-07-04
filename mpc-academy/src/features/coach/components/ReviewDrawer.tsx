@@ -21,6 +21,7 @@ interface ReviewDrawerProps {
 export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawerProps) {
   const { setStatus, returnFeedback } = useCoach();
   const [feedback, setFeedback] = useState("");
+  const [busy, setBusy] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync the field whenever a different submission opens.
@@ -46,21 +47,33 @@ export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawe
 
   const completed = submission?.status === "Completed";
 
-  const handleSend = () => {
-    if (!submission) return;
+  const handleSend = async () => {
+    if (!submission || busy) return;
     if (!feedback.trim()) {
       toast.error("Write some feedback before sending.");
       textareaRef.current?.focus();
       return;
     }
-    returnFeedback(submission.id, feedback.trim());
+    setBusy(true);
+    const ok = await returnFeedback(submission.id, feedback.trim());
+    setBusy(false);
+    if (!ok) {
+      toast.error("Couldn't send feedback. Please try again.");
+      return;
+    }
     toast.success(`Feedback sent to ${submission.member.name.split(" ")[0]}`);
     onClose();
   };
 
-  const handleComplete = () => {
-    if (!submission) return;
-    setStatus(submission.id, "Completed");
+  const handleComplete = async () => {
+    if (!submission || busy) return;
+    setBusy(true);
+    const ok = await setStatus(submission.id, "Completed");
+    setBusy(false);
+    if (!ok) {
+      toast.error("Couldn't update the submission. Please try again.");
+      return;
+    }
     toast.success("Marked complete");
     onClose();
   };
@@ -171,12 +184,22 @@ export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawe
             {/* Footer */}
             <div className="flex gap-2 border-t border-line px-5 py-4">
               {!completed && (
-                <Button variant="ghost" size="sm" onClick={handleComplete}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleComplete}
+                  disabled={busy}
+                >
                   <Check size={16} />
                   Mark complete
                 </Button>
               )}
-              <Button size="sm" onClick={handleSend} className="ml-auto">
+              <Button
+                size="sm"
+                onClick={handleSend}
+                disabled={busy}
+                className="ml-auto"
+              >
                 {completed ? <Mail size={16} /> : <Send size={16} />}
                 {completed ? "Resend feedback" : "Send & complete"}
               </Button>

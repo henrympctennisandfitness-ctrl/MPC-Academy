@@ -3,8 +3,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
+import { Quote } from "lucide-react";
 import { Card, Button } from "@/components/ui";
 import { OVERALL } from "../data";
+import { useMemberProgress } from "../store";
 import { OverallRing } from "./OverallRing";
 import { ShotRatings } from "./ShotRatings";
 import { GoalsList } from "./GoalsList";
@@ -31,6 +33,8 @@ function SectionHeading({ title }: { title: string }) {
 
 /** The full My Progress experience — Apple Health × WHOOP, mobile-first. */
 export function ProgressView() {
+  const { sessions, latestFeedback, loading, error } = useMemberProgress();
+
   return (
     <div className="space-y-8">
       {/* Heading */}
@@ -40,6 +44,29 @@ export function ProgressView() {
           How your game is trending across every review.
         </p>
       </Section>
+
+      {/* Latest coach feedback */}
+      {latestFeedback && (
+        <Section delay={0.04}>
+          <SectionHeading title="Latest coach feedback" />
+          <Card className="p-5">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[14px] font-semibold">
+                {latestFeedback.analysisType}
+              </p>
+              <p className="text-[13px] text-muted">
+                {latestFeedback.date} · {latestFeedback.coach}
+              </p>
+            </div>
+            <div className="flex gap-2 rounded-xl bg-background px-3.5 py-3">
+              <Quote size={16} className="mt-0.5 shrink-0 text-brand/60" />
+              <p className="text-[14px] leading-relaxed text-ink">
+                {latestFeedback.comment}
+              </p>
+            </div>
+          </Card>
+        </Section>
+      )}
 
       {/* Overall */}
       <Section delay={0.05}>
@@ -77,7 +104,7 @@ export function ProgressView() {
       {/* Coaching history */}
       <Section delay={0.16}>
         <SectionHeading title="Coaching history" />
-        <SessionTimeline />
+        <SessionTimeline sessions={sessions} loading={loading} error={error} />
       </Section>
 
       {/* CTA */}

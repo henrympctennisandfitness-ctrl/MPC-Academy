@@ -1,23 +1,25 @@
-# Google Apps Script — deployment
+# Google Apps Script — the MPC Academy backend (Phase 1: Sheets only)
 
-This is the whole backend: one Apps Script Web App that receives a submission,
-stores the video in Drive, records a row in Sheets, and emails the coach.
+This one Apps Script Web App **is** the backend. The Google Sheet is the
+database; this script is the API in front of it. There is no custom server, and
+**no Google Drive yet** — Phase 1 stores each submission's video *filename* plus
+a placeholder so Drive can be wired in later (Phase 2) without touching the UI.
 
 ## 1. Create the Sheet
 
-1. Create a new Google Sheet. Name it e.g. **MPC Academy — Submissions**.
+1. Create a new Google Sheet, e.g. **MPC Academy — Submissions**.
 2. Copy its **ID** from the URL:
    `https://docs.google.com/spreadsheets/d/`**`THIS_IS_THE_ID`**`/edit`
-   (You don't need to add headers — the script adds them on the first run.)
+   You don't need to add headers — the script writes them on first run.
 
 ## 2. Create the script
 
 1. Go to https://script.google.com → **New project**.
 2. Delete the starter code, paste in `Code.gs` from this folder.
-3. At the top of the file, set:
+3. At the top, set:
    - `CONFIG.SHEET_ID` → the ID from step 1 (**required**)
-   - `CONFIG.COACH_EMAIL` → where the notification email goes (optional)
-   - `CONFIG.FOLDER_NAME` → leave as-is or rename the Drive folder
+   - `CONFIG.SHEET_NAME` → leave as `Submissions` unless you renamed the tab
+   - `CONFIG.COACH_EMAIL` → where the "new submission" email goes (optional)
 4. Save.
 
 ## 3. Deploy as a Web App
@@ -25,14 +27,14 @@ stores the video in Drive, records a row in Sheets, and emails the coach.
 1. **Deploy → New deployment** → gear icon → **Web app**.
 2. Set:
    - **Execute as:** *Me*
-   - **Who has access:** *Anyone*  ← required so the portal can call it
-3. **Deploy**, then **Authorize access** and approve the Drive / Sheets / Gmail
-   scopes (you'll see a "Google hasn't verified this app" screen — it's your own
-   script; continue).
+   - **Who has access:** *Anyone* ← required so the portal can call it
+3. **Deploy**, then **Authorize access** and approve the Sheets (+ Gmail, if you
+   set a coach email) scopes. You'll see a "Google hasn't verified this app"
+   screen — it's your own script; continue.
 4. Copy the **Web app URL** (ends in `/exec`).
 
 Open that URL in a browser — you should see
-`{"ok":true,"service":"MPC Academy intake","status":"ready"}`.
+`{"ok":true,"service":"MPC Academy submissions","status":"ready"}`.
 
 ## 4. Point the portal at it
 
@@ -40,32 +42,55 @@ In the Next.js project, create `.env.local`:
 
 ```
 NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/XXXX/exec
+NEXT_PUBLIC_GOOGLE_SHEET_ID=your-sheet-id          # optional (reference only)
+NEXT_PUBLIC_GOOGLE_SHEET_NAME=Submissions          # optional, defaults to this
 ```
 
-Restart `npm run dev`. The Submit wizard now uploads for real. With the URL
-unset, the wizard runs in simulated mode so development still works.
+Restart `npm run dev`. The portal now reads and writes live Sheet data. **With
+the URL unset, the app runs against a built-in in-memory mock** so development
+works with zero Google setup.
 
 ## Re-deploying after edits
 
-Editing `Code.gs` doesn't change the live URL automatically. Either
-**Deploy → Manage deployments → Edit → Version: New version**, or create a new
-deployment (which gives a new URL you'd paste into `.env.local`).
+Editing `Code.gs` doesn't update the live URL automatically:
+**Deploy → Manage deployments → Edit → Version: New version → Deploy.**
 
-## Important limit — video size
+## The API
 
-Apps Script Web Apps cap the request body at roughly **50 MB**, and base64
-encoding inflates a file by ~33%. In practice this path handles clips up to
-about **40 MB** (the portal enforces this before uploading). For full-length
-match footage you'll want a resumable upload straight to Drive via the Drive
-API — that's the intended next step and slots in behind the same
-`uploadSubmission()` function without touching the UI.
+Every response is `{ ok: boolean, data?, error? }`.
 
-## Data recorded per submission
+| Method | Request | Purpose |
+| --- | --- | --- |
+| `GET`  | `?action=list` | All submissions (coach dashboard) |
+| `GET`  | `?action=list&email=x@y.com` | One member's submissions (My Progress) |
+| `POST` | `{ action:"create", submission }` | Append a new submission |
+| `POST` | `{ action:"updateStatus", id, status }` | New / In Review / Completed |
+| `POST` | `{ action:"updateFeedback", id, feedback, coachNotes? }` | Return feedback + complete |
+| `POST` | `{ action:"updateProgressRating", id, rating }` | Set 0–100 rating |
+
+Writes are sent as `text/plain` to avoid a CORS preflight the Apps Script
+runtime can't answer; reads are simple GETs. Both work cross-origin from the
+browser.
+
+## Columns recorded per submission
 
 | Column | Source |
 | --- | --- |
-| Date | server timestamp |
-| Member Name / Email / Membership ID | portal (member session) |
+| Submission ID | generated at submit time (unique) |
+| Timestamp | submit time (ISO) |
+| Member Name / Member Email / Membership ID | member session |
 | Analysis Type / Goal / Notes | wizard answers |
-| Video URL | Drive file link |
 | Status | defaults to `New` |
+| Assigned Coach | set during triage |
+| Coach Feedback / Coach Notes | coach actions |
+| Completion Date | stamped when Status → Completed |
+| Progress Rating | 0–100, set by coach |
+| Video Filename | chosen clip's name (bytes **not** uploaded in Phase 1) |
+| Video Placeholder | `PENDING_DRIVE_UPLOAD` until Phase 2 |
+
+## Phase 2 hook — Google Drive
+
+`createSubmission_()` in `Code.gs` marks exactly where the video upload lands:
+decode/upload the file to Drive, store the resulting URL in the **Video
+Placeholder** column (rename it "Video URL"), and have the portal send the file
+bytes. No other part of the flow changes.

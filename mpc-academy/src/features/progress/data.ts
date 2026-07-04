@@ -37,15 +37,6 @@ export interface Achievement {
   date?: string;
 }
 
-export interface Session {
-  id: string;
-  date: string;
-  analysisType: string;
-  coach: string;
-  rating: number;
-  comment: string;
-}
-
 export const OVERALL = { value: 75, delta: 4, label: "Overall rating" };
 
 export const SHOT_RATINGS: ShotRating[] = [
@@ -70,10 +61,5 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "a6", title: "All-court", description: "Every shot rated 75+", icon: Trophy, earned: false },
 ];
 
-export const SESSIONS: Session[] = [
-  { id: "s1", date: "24 Jun 2026", analysisType: "Serve", coach: "Coach Marta", rating: 82, comment: "Toss is far more consistent. Keep the tossing arm up a beat longer and you'll gain easy power without swinging harder." },
-  { id: "s2", date: "11 Jun 2026", analysisType: "Backhand", coach: "Coach Dan", rating: 68, comment: "Great extension through the ball. Close the racket face a touch earlier and you'll stop floating it long." },
-  { id: "s3", date: "02 Jun 2026", analysisType: "Match Play", coach: "Coach Marta", rating: 74, comment: "Smart patterns under pressure. Commit to the forehand on short balls rather than rolling it back safe." },
-  { id: "s4", date: "20 May 2026", analysisType: "Volley", coach: "Coach Dan", rating: 71, comment: "Soft hands are coming along. Split-step a fraction earlier and you'll reach the low volleys comfortably." },
-  { id: "s5", date: "06 May 2026", analysisType: "Forehand", coach: "Coach Marta", rating: 73, comment: "Lovely racket-head speed. Finish a little higher over the shoulder for more margin on big points." },
-];
+// Coaching history (past sessions) now comes live from Google Sheets — see
+// `useMemberProgress` in ../store and the SessionTimeline component.

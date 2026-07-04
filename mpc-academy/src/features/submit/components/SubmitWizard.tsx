@@ -22,8 +22,7 @@ import {
   type WizardData,
 } from "../schema";
 import { clearDraft, loadDraft, saveDraft } from "../storage";
-import { uploadSubmission, APPS_SCRIPT_MAX_BYTES } from "../api";
-import { GOOGLE_CONFIG } from "@/lib/config";
+import { uploadSubmission } from "../api";
 import { CURRENT_MEMBER } from "@/lib/member";
 
 /**
@@ -152,15 +151,7 @@ export function SubmitWizard() {
       return;
     }
 
-    // 3. Guard the Apps Script size ceiling before we try.
-    if (GOOGLE_CONFIG.appsScriptUrl && liveFile.size > APPS_SCRIPT_MAX_BYTES) {
-      toast.error(
-        "This clip is too large for the current uploader (~40MB max). Trim it and try again.",
-      );
-      return;
-    }
-
-    // 4. Upload with real progress.
+    // 3. Record the submission in Google Sheets (video bytes are Phase 2).
     setSubmitting(true);
     setSubmitProgress(0);
     try {
