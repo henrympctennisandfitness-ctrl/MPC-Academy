@@ -1,29 +1,18 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { MEMBERS, getMemberBySlug, MemberProfile } from "@/features/members";
+import { CoachMemberHistory } from "@/features/coach";
 
-/** Pre-render every member profile for the coach roster. */
-export function generateStaticParams() {
-  return MEMBERS.map((m) => ({ slug: m.slug }));
-}
+export const metadata: Metadata = { title: "Coach · Member history" };
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const member = getMemberBySlug(slug);
-  return { title: member ? `Coach · ${member.name}` : "Member not found" };
-}
-
-/** Coach-facing member profile. Back link returns to the coach roster. */
-export default async function CoachMemberProfilePage({
+/**
+ * Coach-facing member profile/history. The `slug` is the member's stable dedup
+ * key (URL-encoded); `CoachMemberHistory` resolves it against live submissions.
+ * Chrome (and CoachProvider) come from RootShell → CoachShell.
+ */
+export default async function CoachMemberHistoryPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  if (!getMemberBySlug(slug)) notFound();
-  return <MemberProfile slug={slug} backHref="/coach/members" backLabel="All members" />;
+  return <CoachMemberHistory memberKey={decodeURIComponent(slug)} />;
 }

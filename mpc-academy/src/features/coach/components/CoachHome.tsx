@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Inbox, Clock3, CheckCircle2, Users, type LucideIcon } from "lucide-react";
+import { getCurrentUser } from "@/lib/access";
 import { useCoach } from "../store";
 import { SubmissionList } from "./SubmissionList";
 import { MembersView } from "./MembersView";
@@ -33,6 +34,7 @@ function StatCard({ stat }: { stat: Stat }) {
 /** Coach landing view: overview stats + today's queue + recent members. */
 export function CoachHome() {
   const { counts } = useCoach();
+  const firstName = getCurrentUser().name.split(" ")[0];
 
   const stats: Stat[] = [
     { label: "Today's queue", value: counts.today, href: "/coach", icon: Inbox },
@@ -44,7 +46,7 @@ export function CoachHome() {
   return (
     <div>
       <p className="mb-4 text-[14px] text-muted">
-        Good morning, Coach Marta — here&apos;s what&apos;s waiting.
+        Good morning, {firstName} — here&apos;s what&apos;s waiting.
       </p>
 
       {/* Overview */}

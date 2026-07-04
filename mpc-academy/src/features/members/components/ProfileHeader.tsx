@@ -25,7 +25,7 @@ export function ProfileHeader({ member }: { member: Member }) {
           </h1>
           <p className="mt-0.5 text-[13.5px] text-muted">{member.membershipId}</p>
           <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-tint px-2.5 py-1 text-[12px] font-semibold text-[#8A6D12]">
-            {member.tier} member · since {member.joined}
+            {member.role} · since {member.joined}
           </span>
         </div>
       </div>

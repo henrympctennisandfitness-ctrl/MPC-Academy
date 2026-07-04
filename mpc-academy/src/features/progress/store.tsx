@@ -16,6 +16,8 @@ export interface MemberSession {
   rating: number | null;
   /** Coach feedback returned to the member. */
   comment: string;
+  /** Coach's notes shown alongside the feedback (empty when none). */
+  coachNotes: string;
 }
 
 export interface MemberProgress {
@@ -50,6 +52,7 @@ function toSession(s: Submission): MemberSession {
     coach: s.assignedCoach || "Your coach",
     rating: typeof s.progressRating === "number" ? s.progressRating : null,
     comment: s.coachFeedback || "Feedback coming soon.",
+    coachNotes: s.coachNotes || "",
   };
 }
 

@@ -5,9 +5,10 @@
  */
 
 import type { Submission } from "@/services/google";
+import { normalizeStatus } from "./data";
 import type { CoachMember, CoachSubmission } from "./data";
 
-/** "Henry Walsh" → "HW"; falls back to the first character. */
+/** "Henry Macdonald" → "HM"; falls back to the first character. */
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -46,60 +47,95 @@ function monthYear(iso: string): string {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/**
+ * Stable identity for a member, so multiple submissions collapse to one card.
+ * Deduplicate by email first; if the email is missing, fall back to Membership
+ * ID; if both are missing, fall back to the exact (case-insensitive) name.
+ * Prefixes keep the three key spaces from ever colliding.
+ */
+export function memberKey(m: {
+  email?: string;
+  membershipId?: string;
+  name?: string;
+}): string {
+  const email = (m.email ?? "").trim().toLowerCase();
+  if (email) return `e:${email}`;
+  const membershipId = (m.membershipId ?? "").trim().toLowerCase();
+  if (membershipId) return `m:${membershipId}`;
+  const name = (m.name ?? "").trim().toLowerCase();
+  if (name) return `n:${name}`;
+  return "unknown";
+}
+
 /** Map one sheet row to the coach card model. */
 export function toCoachSubmission(s: Submission): CoachSubmission {
   const { label, today } = dateLabel(s.timestamp);
+  const status = normalizeStatus(s.status);
   return {
     id: s.id,
     member: {
-      id: s.memberEmail.toLowerCase(),
+      id: memberKey({
+        email: s.memberEmail,
+        membershipId: s.membershipId,
+        name: s.memberName,
+      }),
       name: s.memberName,
       initials: initialsOf(s.memberName),
       email: s.memberEmail,
       membershipId: s.membershipId,
-      tier: "Standard",
       joined: monthYear(s.timestamp),
-      submissionCount: 0, // filled in by deriveMembers
+      // Per-submission placeholders; deriveMembers rolls these up per member.
+      submissionCount: 0,
+      latestSubmittedAt: s.timestamp,
+      latestDateLabel: label,
+      latestStatus: status,
     },
     analysisType: s.analysisType,
     goal: s.goal,
     dateLabel: label,
     submittedAt: s.timestamp,
-    status: s.status,
+    status,
     notes: s.notes,
     videoUrl: "#", // Phase 2 (Drive) replaces this with the real link
     feedback: s.coachFeedback || undefined,
+    coachNotes: s.coachNotes || undefined,
+    progressRating: typeof s.progressRating === "number" ? s.progressRating : null,
     today,
   };
 }
 
 /**
- * Roll submissions up into a unique member roster (keyed by email), with an
- * accurate submission count and earliest-joined date, newest activity first.
+ * Roll submissions up into a unique member roster — exactly ONE entry per
+ * member (deduplicated via `memberKey`). Each card aggregates the member's
+ * total submission count, latest submission date and latest status. Sorted by
+ * most recent activity first.
  */
 export function deriveMembers(subs: CoachSubmission[]): CoachMember[] {
-  const byEmail = new Map<string, CoachMember>();
+  const byKey = new Map<string, CoachMember>();
 
   for (const s of subs) {
     const key = s.member.id;
-    const existing = byEmail.get(key);
+    const existing = byKey.get(key);
+
     if (!existing) {
-      byEmail.set(key, { ...s.member, submissionCount: 1 });
+      byKey.set(key, { ...s.member, submissionCount: 1 });
       continue;
     }
+
     existing.submissionCount += 1;
-    // Keep the earliest join month across the member's submissions.
-    if (s.submittedAt < earliestIsoFor(existing, subs)) {
-      existing.joined = s.member.joined;
+    // Latest submission wins for the displayed identity + status/date.
+    if (s.submittedAt > existing.latestSubmittedAt) {
+      existing.name = s.member.name;
+      existing.initials = s.member.initials;
+      existing.email = s.member.email;
+      existing.membershipId = s.member.membershipId;
+      existing.latestSubmittedAt = s.submittedAt;
+      existing.latestDateLabel = s.member.latestDateLabel;
+      existing.latestStatus = s.member.latestStatus;
     }
   }
 
-  return Array.from(byEmail.values());
-}
-
-/** Earliest submission ISO for a member — used to pick the "joined" label. */
-function earliestIsoFor(member: CoachMember, subs: CoachSubmission[]): string {
-  return subs
-    .filter((s) => s.member.id === member.id)
-    .reduce((min, s) => (s.submittedAt < min ? s.submittedAt : min), "9999");
+  return Array.from(byKey.values()).sort((a, b) =>
+    b.latestSubmittedAt.localeCompare(a.latestSubmittedAt),
+  );
 }

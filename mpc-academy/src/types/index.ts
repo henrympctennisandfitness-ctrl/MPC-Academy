@@ -9,7 +9,6 @@ export interface Member {
   fullName: string;
   email: string;
   membershipId: string;
-  tier: "Standard" | "Elite";
 }
 
 export type AnalysisType =

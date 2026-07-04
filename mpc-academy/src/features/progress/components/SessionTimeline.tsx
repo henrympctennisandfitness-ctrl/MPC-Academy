@@ -1,52 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Quote, Inbox, AlertCircle } from "lucide-react";
+import { Quote } from "lucide-react";
 import type { MemberSession } from "../store";
 
-interface SessionTimelineProps {
-  sessions: MemberSession[];
-  loading: boolean;
-  error: string | null;
-}
-
-/** Vertical timeline of past coaching sessions, each with the coach's note. */
-export function SessionTimeline({ sessions, loading, error }: SessionTimelineProps) {
-  if (loading) {
-    return (
-      <div className="grid gap-3" aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-[116px] animate-pulse rounded-2xl border border-line bg-surface"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line py-12 text-center">
-        <AlertCircle size={22} className="text-muted" />
-        <p className="mt-3 text-[14px] font-semibold">Couldn&apos;t load your history</p>
-        <p className="mt-1 text-[13px] text-muted">{error}</p>
-      </div>
-    );
-  }
-
-  if (sessions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line py-12 text-center">
-        <Inbox size={22} className="text-muted" />
-        <p className="mt-3 text-[14px] font-semibold">No reviews yet</p>
-        <p className="mt-1 text-[13px] text-muted">
-          Submit an analysis and your coach&apos;s feedback will appear here.
-        </p>
-      </div>
-    );
-  }
-
+/**
+ * Vertical timeline of the member's completed coaching sessions — each with the
+ * coach's feedback, notes, completion date and progress rating. Fed entirely by
+ * live Google Sheets data; the parent gates loading/error/empty.
+ */
+export function SessionTimeline({ sessions }: { sessions: MemberSession[] }) {
   return (
     <div>
       {sessions.map((s, i) => {
@@ -89,6 +52,17 @@ export function SessionTimeline({ sessions, loading, error }: SessionTimelinePro
                     {s.comment}
                   </p>
                 </div>
+
+                {s.coachNotes && (
+                  <div className="mt-2 rounded-xl border border-dashed border-line px-3.5 py-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
+                      Coach notes
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                      {s.coachNotes}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

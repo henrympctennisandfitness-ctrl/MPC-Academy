@@ -13,6 +13,7 @@ import {
   fetchSubmissions,
   updateStatus as apiUpdateStatus,
   updateFeedback as apiUpdateFeedback,
+  updateProgressRating as apiUpdateProgressRating,
 } from "@/services/google";
 import {
   type CoachSubmission,
@@ -31,8 +32,14 @@ interface CoachContextValue {
   refresh: () => Promise<void>;
   /** Update a submission's status; returns false (and reverts) on failure. */
   setStatus: (id: string, status: SubmissionStatus) => Promise<boolean>;
-  /** Return written feedback and mark complete; false (and reverts) on failure. */
-  returnFeedback: (id: string, feedback: string) => Promise<boolean>;
+  /** Return feedback (+ optional coach notes) and mark complete. */
+  returnFeedback: (
+    id: string,
+    feedback: string,
+    coachNotes?: string,
+  ) => Promise<boolean>;
+  /** Save the 0–100 progress rating; false (and reverts) on failure. */
+  setProgressRating: (id: string, rating: number) => Promise<boolean>;
 }
 
 const CoachContext = createContext<CoachContextValue | null>(null);
@@ -79,13 +86,35 @@ export function CoachProvider({ children }: { children: ReactNode }) {
   );
 
   const returnFeedback = useCallback(
-    async (id: string, feedback: string) => {
+    async (id: string, feedback: string, coachNotes?: string) => {
       setSubmissions((prev) =>
         prev.map((s) =>
-          s.id === id ? { ...s, feedback, status: "Completed" } : s,
+          s.id === id
+            ? {
+                ...s,
+                feedback,
+                ...(coachNotes !== undefined ? { coachNotes } : {}),
+                status: "Completed",
+              }
+            : s,
         ),
       );
-      const res = await apiUpdateFeedback(id, feedback);
+      const res = await apiUpdateFeedback(id, feedback, coachNotes);
+      if (!res.ok) {
+        await load(true);
+        return false;
+      }
+      return true;
+    },
+    [load],
+  );
+
+  const setProgressRating = useCallback(
+    async (id: string, rating: number) => {
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, progressRating: rating } : s)),
+      );
+      const res = await apiUpdateProgressRating(id, rating);
       if (!res.ok) {
         await load(true);
         return false;
@@ -117,8 +146,19 @@ export function CoachProvider({ children }: { children: ReactNode }) {
       refresh: () => load(),
       setStatus,
       returnFeedback,
+      setProgressRating,
     }),
-    [submissions, members, counts, loading, error, load, setStatus, returnFeedback],
+    [
+      submissions,
+      members,
+      counts,
+      loading,
+      error,
+      load,
+      setStatus,
+      returnFeedback,
+      setProgressRating,
+    ],
   );
 
   return <CoachContext.Provider value={value}>{children}</CoachContext.Provider>;

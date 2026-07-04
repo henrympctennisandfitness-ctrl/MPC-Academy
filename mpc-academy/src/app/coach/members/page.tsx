@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import { MembersIndex } from "@/features/members";
+import { MembersView } from "@/features/coach";
 
 export const metadata: Metadata = { title: "Coach · Members" };
 
-/** Coaches see the full roster and can open any member profile. */
+/**
+ * The Coach Studio is the ONLY place the full academy roster is listed, loaded
+ * live from Google Sheets (derived from submissions). Members never see it.
+ */
 export default function CoachMembersPage() {
-  return <MembersIndex basePath="/coach/members" />;
+  return <MembersView />;
 }

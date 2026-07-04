@@ -8,8 +8,7 @@ import type { Member } from "@/types";
 export const CURRENT_MEMBER: Member = {
   id: "mem_demo",
   firstName: "Henry",
-  fullName: "Henry Walsh",
-  email: "henry.walsh@example.com",
+  fullName: "Henry Macdonald",
+  email: "henrymacdonald35@gmail.com",
   membershipId: "MPC-2041",
-  tier: "Elite",
 };

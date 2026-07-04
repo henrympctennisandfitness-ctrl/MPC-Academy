@@ -30,23 +30,22 @@ export interface MockUser {
 }
 
 /**
- * Central mock roster. Only Henry (admin) and Calum (coach) get coach access;
- * everyone else is an Academy Member.
+ * Coaches in the system. Henry Macdonald and Calum Meston are the ONLY coaches;
+ * both are Head Coaches. Everyone else is an Academy Member (there is no member
+ * roster here — academy members are listed only in the Coach Studio, from
+ * Google Sheets). `MEMBER` is the generic fallback identity for the member
+ * portal experience (the signed-in member's own data lives in CURRENT_MEMBER).
  */
 export const USERS: MockUser[] = [
-  { id: "henry-macdonald", name: "Henry Macdonald", email: "henry.macdonald@mpcacademy.com", role: "admin", roleLabel: "Admin / Head Coach" },
-  { id: "calum-meston", name: "Calum Meston", email: "calum.meston@mpcacademy.com", role: "coach", roleLabel: "Coach / Head Coach" },
-  { id: "priya-sharma", name: "Priya Sharma", email: "priya.sharma@example.com", role: "member", roleLabel: "Academy Member" },
-  { id: "marcus-delaney", name: "Marcus Delaney", email: "marcus.d@example.com", role: "member", roleLabel: "Academy Member" },
-  { id: "elena-kovac", name: "Elena Kovač", email: "elena.k@example.com", role: "member", roleLabel: "Academy Member" },
-  { id: "tom-rutherford", name: "Tom Rutherford", email: "tom.r@example.com", role: "member", roleLabel: "Academy Member" },
-  { id: "aisha-bello", name: "Aisha Bello", email: "aisha.b@example.com", role: "member", roleLabel: "Academy Member" },
+  { id: "henry-macdonald", name: "Henry Macdonald", email: "henrymacdonald35@gmail.com", role: "admin", roleLabel: "Head Coach" },
+  { id: "calum-meston", name: "Calum Meston", email: "calum.meston@mpcacademy.com", role: "coach", roleLabel: "Head Coach" },
+  { id: "member", name: "Academy Member", email: "member@mpcacademy.com", role: "member", roleLabel: "Academy Member" },
 ];
 
 /**
  * The mock "logged-in" user. Change this id to preview the app as someone else
- * — e.g. "priya-sharma" to see the Academy Member experience (no Coach Studio
- * link, and Access Denied at /coach). Replace with a real session later.
+ * — e.g. "member" to see the Academy Member experience (no Coach Studio link,
+ * and Access Denied at /coach). Replace with a real session later.
  */
 export const CURRENT_USER_ID = "henry-macdonald";
 
@@ -60,9 +59,8 @@ export function canAccessCoach(user: MockUser = getCurrentUser()): boolean {
   return user.role === "coach" || user.role === "admin";
 }
 
-/** Short role title for the dev indicator, e.g. "Admin". */
+/** Short role title for the dev indicator. Coaches show as "Head Coach". */
 export function roleTitle(role: Role): string {
-  if (role === "admin") return "Admin";
-  if (role === "coach") return "Coach";
+  if (role === "admin" || role === "coach") return "Head Coach";
   return "Academy Member";
 }

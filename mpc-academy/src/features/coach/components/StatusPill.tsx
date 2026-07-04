@@ -1,9 +1,16 @@
 import { STATUS_STYLE } from "../constants";
+import { normalizeStatus } from "../data";
 import type { SubmissionStatus } from "../data";
 
 /** Small status chip: coloured dot + label, tuned per status. */
-export function StatusPill({ status }: { status: SubmissionStatus }) {
-  const s = STATUS_STYLE[status];
+export function StatusPill({
+  status,
+}: {
+  /** Accepts raw Sheet values too — anything unknown renders as "New". */
+  status?: SubmissionStatus | string | null;
+}) {
+  const safe = normalizeStatus(status);
+  const s = STATUS_STYLE[safe];
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold"
@@ -14,7 +21,7 @@ export function StatusPill({ status }: { status: SubmissionStatus }) {
         style={{ background: s.dot }}
         aria-hidden
       />
-      {status}
+      {safe}
     </span>
   );
 }

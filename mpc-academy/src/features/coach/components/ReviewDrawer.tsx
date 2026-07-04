@@ -17,16 +17,25 @@ interface ReviewDrawerProps {
   onClose: () => void;
 }
 
+/** Default rating shown on the slider before the coach has rated a submission. */
+const DEFAULT_RATING = 75;
+
 /** Slide-over for reviewing a submission and returning written feedback. */
 export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawerProps) {
-  const { setStatus, returnFeedback } = useCoach();
+  const { setStatus, returnFeedback, setProgressRating } = useCoach();
   const [feedback, setFeedback] = useState("");
+  const [coachNotes, setCoachNotes] = useState("");
+  const [rating, setRating] = useState(DEFAULT_RATING);
   const [busy, setBusy] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sync the field whenever a different submission opens.
+  // Sync the fields whenever a different submission opens.
   useEffect(() => {
-    if (submission) setFeedback(submission.feedback ?? "");
+    if (submission) {
+      setFeedback(submission.feedback ?? "");
+      setCoachNotes(submission.coachNotes ?? "");
+      setRating(submission.progressRating ?? DEFAULT_RATING);
+    }
   }, [submission]);
 
   // Focus the feedback field when opened via "Return Feedback".
@@ -55,10 +64,16 @@ export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawe
       return;
     }
     setBusy(true);
-    const ok = await returnFeedback(submission.id, feedback.trim());
+    // Persist feedback + coach notes, then the progress rating (both to Sheets).
+    const sent = await returnFeedback(
+      submission.id,
+      feedback.trim(),
+      coachNotes.trim(),
+    );
+    const rated = sent ? await setProgressRating(submission.id, rating) : false;
     setBusy(false);
-    if (!ok) {
-      toast.error("Couldn't send feedback. Please try again.");
+    if (!sent || !rated) {
+      toast.error("Couldn't save your review. Please try again.");
       return;
     }
     toast.success(`Feedback sent to ${submission.member.name.split(" ")[0]}`);
@@ -177,6 +192,50 @@ export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawe
                   rows={5}
                   placeholder="Write the notes you'll send back to the member…"
                   className="w-full resize-none rounded-xl border border-line bg-surface p-3.5 text-[14.5px] leading-relaxed outline-none transition-shadow placeholder:text-[#9aa1ab] focus:border-brand focus:shadow-[0_0_0_4px_rgba(14,77,58,0.10)]"
+                />
+              </div>
+
+              {/* Coach notes */}
+              <div>
+                <label
+                  htmlFor="coach-notes"
+                  className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.05em] text-muted"
+                >
+                  Coach notes
+                </label>
+                <textarea
+                  id="coach-notes"
+                  value={coachNotes}
+                  onChange={(e) => setCoachNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Extra context, drills or focus points for next time…"
+                  className="w-full resize-none rounded-xl border border-line bg-surface p-3.5 text-[14.5px] leading-relaxed outline-none transition-shadow placeholder:text-[#9aa1ab] focus:border-brand focus:shadow-[0_0_0_4px_rgba(14,77,58,0.10)]"
+                />
+              </div>
+
+              {/* Progress rating */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label
+                    htmlFor="progress-rating"
+                    className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted"
+                  >
+                    Progress rating
+                  </label>
+                  <span className="rounded-full bg-brand-tint px-2.5 py-0.5 text-[13px] font-bold tabular-nums text-brand">
+                    {rating}
+                  </span>
+                </div>
+                <input
+                  id="progress-rating"
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={rating}
+                  onChange={(e) => setRating(Number(e.target.value))}
+                  className="w-full cursor-pointer"
+                  style={{ accentColor: "#0E4D3A" }}
                 />
               </div>
             </div>

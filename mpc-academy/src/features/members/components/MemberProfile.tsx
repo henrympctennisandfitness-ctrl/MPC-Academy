@@ -3,15 +3,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui";
-import { getMemberBySlug } from "../data";
+import { TrendingUp, ChevronRight } from "lucide-react";
+import { Card } from "@/components/ui";
+import { getCurrentMemberProfile } from "../data";
 import { ProfileHeader } from "./ProfileHeader";
-import { ProgressSummary } from "./ProgressSummary";
-import { GoalsList } from "./GoalsList";
-import { ReviewsTimeline } from "./ReviewsTimeline";
-import { CoachNote } from "./CoachNote";
-import { Achievements } from "./Achievements";
 
 function Section({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
   const reduce = useReducedMotion();
@@ -26,64 +21,32 @@ function Section({ children, delay = 0 }: { children: ReactNode; delay?: number 
   );
 }
 
-function SectionHeading({ title }: { title: string }) {
-  return <h2 className="mb-3 text-[17px] font-semibold tracking-tight">{title}</h2>;
-}
-
-/** Full member profile. Looks the member up client-side from its slug. */
-export function MemberProfile({
-  slug,
-  backHref,
-  backLabel = "All members",
-}: {
-  slug: string;
-  /** When set, shows a back link (e.g. to the coach roster). Own-profile omits it. */
-  backHref?: string;
-  backLabel?: string;
-}) {
-  const member = getMemberBySlug(slug);
-  if (!member) return null; // the route already guards unknown slugs
+/** The signed-in member's own profile — identity only, never anyone else's. */
+export function MemberProfile() {
+  const member = getCurrentMemberProfile();
 
   return (
     <div className="space-y-8">
-      {backHref && (
-        <Section>
-          <Link href={backHref}>
-            <Button variant="ghost" size="sm">
-              <ChevronLeft size={16} />
-              {backLabel}
-            </Button>
-          </Link>
-        </Section>
-      )}
-
       <Section delay={0.03}>
         <ProfileHeader member={member} />
       </Section>
 
+      {/* Coaching data is live on My Progress — no fabricated history here. */}
       <Section delay={0.06}>
-        <SectionHeading title="Progress summary" />
-        <ProgressSummary overall={member.overall} ratings={member.ratings} />
-      </Section>
-
-      <Section delay={0.08}>
-        <SectionHeading title="Current goals" />
-        <GoalsList goals={member.goals} />
-      </Section>
-
-      <Section delay={0.1}>
-        <SectionHeading title="Recent coaching reviews" />
-        <ReviewsTimeline reviews={member.reviews} />
-      </Section>
-
-      <Section delay={0.12}>
-        <SectionHeading title="Coach notes" />
-        <CoachNote note={member.coachNote} />
-      </Section>
-
-      <Section delay={0.14}>
-        <SectionHeading title="Achievements" />
-        <Achievements items={member.achievements} />
+        <Link href="/progress" className="block">
+          <Card className="flex items-center gap-4 p-5 transition-shadow duration-200 hover:shadow-card-hover">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-tint">
+              <TrendingUp size={19} className="text-brand" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold">Coaching feedback &amp; history</p>
+              <p className="mt-0.5 text-[13.5px] text-muted">
+                See your latest feedback, notes and progress ratings.
+              </p>
+            </div>
+            <ChevronRight size={18} className="shrink-0 text-muted" />
+          </Card>
+        </Link>
       </Section>
     </div>
   );
