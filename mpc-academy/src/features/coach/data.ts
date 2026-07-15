@@ -53,7 +53,10 @@ export interface CoachSubmission {
   submittedAt: string; // ISO, for sorting
   status: SubmissionStatus;
   notes: string;
+  /** Google Drive URL of the uploaded video ("" when none). */
   videoUrl: string;
+  /** Original filename of the uploaded video ("" when none). */
+  videoFilename: string;
   feedback?: string;
   /** Coach's notes, shown to the member on My Progress alongside feedback. */
   coachNotes?: string;

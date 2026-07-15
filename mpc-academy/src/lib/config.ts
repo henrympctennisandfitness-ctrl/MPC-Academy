@@ -18,15 +18,31 @@ export const APP = {
  * inside the spreadsheet `spreadsheetId`. Empty strings = not configured yet
  * (the app then runs against an in-memory mock so development still works).
  *
- * Phase 1 is Google Sheets ONLY — videos are not uploaded yet; the submission
- * stores the chosen video's filename + a placeholder so Drive can be wired in
- * later without touching the UI. See src/services/google/.
+ * Videos upload DIRECTLY to Google Drive from the browser (resumable upload API,
+ * up to 3GB) — never through Apps Script. Apps Script only records metadata (the
+ * Drive URL + filename) in the Sheet. See src/services/google/drive.ts.
  */
 export const GOOGLE_CONFIG = {
   appsScriptUrl: process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL ?? "",
   spreadsheetId: process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID ?? "",
   sheetName: process.env.NEXT_PUBLIC_GOOGLE_SHEET_NAME ?? "Submissions",
-  maxUploadBytes: 2 * 1024 * 1024 * 1024, // 2GB
+
+  /**
+   * Google OAuth 2.0 Client ID (Web application) used by Google Identity
+   * Services to obtain a short-lived Drive access token for the resumable
+   * upload. This is Drive AUTHORIZATION only — not app/member login. Empty =
+   * uploads are skipped (dev), and only metadata is recorded.
+   */
+  driveOAuthClientId: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID ?? "",
+  /** Drive folder that holds submission videos (created in the member's Drive). */
+  driveRootFolderName:
+    process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_NAME ?? "MPC Academy Submissions",
+  /** How uploaded videos are shared so coaches can view them. */
+  driveSharing: (process.env.NEXT_PUBLIC_GOOGLE_DRIVE_SHARING ??
+    "ANYONE_WITH_LINK") as "ANYONE_WITH_LINK" | "DOMAIN" | "PRIVATE",
+
+  /** Max clip size accepted at the dropzone (direct resumable upload). */
+  maxUploadBytes: 3 * 1024 * 1024 * 1024, // 3GB
   acceptedVideo: ["video/mp4", "video/quicktime", "video/mpeg"] as const,
 } as const;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, MessageSquare, Eye } from "lucide-react";
+import { Check, MessageSquare, Eye, Film, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui";
 import { VideoThumb } from "./VideoThumb";
 import { StatusPill } from "./StatusPill";
@@ -22,6 +22,7 @@ export function SubmissionCard({
 }: SubmissionCardProps) {
   const { member, analysisType, goal, dateLabel, status, notes } = submission;
   const completed = status === "Completed";
+  const hasVideo = Boolean(submission.videoUrl || submission.videoFilename);
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover sm:p-5">
@@ -54,6 +55,18 @@ export function SubmissionCard({
             </span>
             <span aria-hidden>·</span>
             <span>{dateLabel}</span>
+            <span aria-hidden>·</span>
+            {hasVideo ? (
+              <span className="inline-flex items-center gap-1 font-medium text-brand">
+                <Film size={13} />
+                Video
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                <VideoOff size={13} />
+                No video
+              </span>
+            )}
           </div>
           <p className="mt-2 line-clamp-2 text-[13.5px] leading-relaxed text-muted">
             {completed && submission.feedback ? submission.feedback : notes}

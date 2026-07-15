@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { X, Check, Send, Mail } from "lucide-react";
 import { Button } from "@/components/ui";
-import { VideoThumb } from "./VideoThumb";
+import { VideoPlayer } from "./VideoPlayer";
 import { StatusPill } from "./StatusPill";
 import { useCoach } from "../store";
 import type { CoachSubmission } from "../data";
@@ -146,7 +146,10 @@ export function ReviewDrawer({ submission, focusFeedback, onClose }: ReviewDrawe
                 <StatusPill status={submission.status} />
               </div>
 
-              <VideoThumb size="full" />
+              <VideoPlayer
+                url={submission.videoUrl}
+                filename={submission.videoFilename}
+              />
 
               {/* Details */}
               <dl className="grid grid-cols-3 gap-3">

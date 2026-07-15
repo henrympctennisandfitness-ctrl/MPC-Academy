@@ -22,9 +22,6 @@ import type {
   SubmissionStatus,
 } from "./types";
 
-/** Value written to `videoPlaceholder` until real Drive upload lands. */
-export const VIDEO_PLACEHOLDER = "PENDING_DRIVE_UPLOAD";
-
 /** Generate a unique, sortable-ish submission ID, e.g. "MPC-LXY2A1-9F3B". */
 export function generateSubmissionId(): string {
   const time = Date.now().toString(36).toUpperCase();
@@ -48,8 +45,12 @@ async function run<T>(op: () => Promise<T>): Promise<ServiceResult<T>> {
 // ---------------------------------------------------------------------------
 
 /**
- * Record a new submission. Fills every field except the coach-only ones,
- * defaults Status to "New", and stores the video filename + placeholder.
+ * Record a new submission (METADATA ONLY).
+ *
+ * The video is uploaded directly to Google Drive from the browser BEFORE this
+ * is called (see drive.ts); the resulting Drive URL is passed in as `videoUrl`.
+ * Apps Script never receives file bytes — it just appends the row. Defaults
+ * Status to "New" and leaves the coach fields empty.
  */
 export async function createSubmission(
   input: NewSubmissionInput,
@@ -69,7 +70,7 @@ export async function createSubmission(
   }
 
   const row: Submission = {
-    id: generateSubmissionId(),
+    id: input.id?.trim() || generateSubmissionId(),
     timestamp: new Date().toISOString(),
     memberName: input.memberName.trim(),
     memberEmail: input.memberEmail.trim(),
@@ -84,8 +85,7 @@ export async function createSubmission(
     completionDate: "",
     progressRating: "",
     videoFilename: input.videoFilename?.trim() ?? "",
-    // FUTURE (Google Drive): replace with the uploaded file's Drive URL.
-    videoPlaceholder: VIDEO_PLACEHOLDER,
+    videoUrl: input.videoUrl?.trim() ?? "",
   };
 
   if (!isSheetsConfigured()) return run(async () => mockDb.create(row));

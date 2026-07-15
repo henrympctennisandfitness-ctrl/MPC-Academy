@@ -18,6 +18,8 @@ export interface MemberSession {
   comment: string;
   /** Coach's notes shown alongside the feedback (empty when none). */
   coachNotes: string;
+  /** The member's own submitted video (Drive URL); "" when none. */
+  videoUrl: string;
 }
 
 export interface MemberProgress {
@@ -53,6 +55,7 @@ function toSession(s: Submission): MemberSession {
     rating: typeof s.progressRating === "number" ? s.progressRating : null,
     comment: s.coachFeedback || "Feedback coming soon.",
     coachNotes: s.coachNotes || "",
+    videoUrl: s.videoUrl || "",
   };
 }
 

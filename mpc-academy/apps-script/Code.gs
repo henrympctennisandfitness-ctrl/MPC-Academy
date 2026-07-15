@@ -1,24 +1,32 @@
 /**
  * MPC Academy — Submissions backend (Google Apps Script Web App)
  * =============================================================================
- * PHASE 1 — GOOGLE SHEETS ONLY. This script is the entire backend: the Google
- * Sheet is the database and this Web App is the API in front of it. No custom
- * server, no Google Drive yet (videos are Phase 2 — see the FUTURE hook below).
+ * This script is the METADATA backend: the Google Sheet is the database and
+ * this Web App is the API in front of it. No custom server.
  *
- * Flow:  Portal  ──GET──▶  read submissions (coach dashboard, member progress)
- *        Portal  ──POST─▶  create submission / update status / feedback / rating
+ * IMPORTANT — videos do NOT pass through Apps Script. The portal uploads each
+ * video DIRECTLY to Google Drive from the browser (resumable upload API, up to
+ * 3GB) and then sends this script only the resulting Drive URL + filename, which
+ * are stored in the Sheet. This keeps the backend fast and dodges the Apps
+ * Script request-size limit entirely.
  *
- * The portal sends/receives JSON. Writes are POSTed as `text/plain` to avoid a
- * CORS preflight the Apps Script runtime can't answer; reads are GET with query
- * params. Every response is the envelope:  { ok: boolean, data?, error? }
+ * Flow:  Browser ──uploads video──▶ Google Drive (resumable)  → Drive URL
+ *        Portal  ──GET──▶  read submissions (coach dashboard, member progress)
+ *        Portal  ──POST─▶  create (metadata + Drive URL) / status / feedback /
+ *                          progress rating
+ *
+ * Writes are POSTed as `text/plain` to avoid a CORS preflight the Apps Script
+ * runtime can't answer; reads are GET with query params. Every response is the
+ * envelope:  { ok: boolean, data?, error? }
  *
  * -----------------------------------------------------------------------------
  * ACTIONS
- *   GET  ?action=list [&email=...]       → all rows (optionally one member's)
- *   POST { action: "create", submission } → append a new row
- *   POST { action: "updateStatus", id, status }
- *   POST { action: "updateFeedback", id, feedback, coachNotes? }
- *   POST { action: "updateProgressRating", id, rating }
+ *   GET  ?action=list [&email=...]        → all rows (optionally one member's)
+ *   POST { action:"create", submission }  → append a row (submission.videoUrl
+ *                                            is the Drive link, already uploaded)
+ *   POST { action:"updateStatus", id, status }
+ *   POST { action:"updateFeedback", id, feedback, coachNotes? }
+ *   POST { action:"updateProgressRating", id, rating }
  * -----------------------------------------------------------------------------
  */
 
@@ -29,7 +37,7 @@ var CONFIG = {
   SHEET_ID: '',              // Google Sheet ID from its URL. REQUIRED.
   SHEET_NAME: 'Submissions', // Tab name (created on first run if absent).
   DEFAULT_STATUS: 'New',     // Status applied to every new submission.
-  COACH_EMAIL: '',           // Optional: emailed when a new submission arrives.
+  COACH_EMAIL: '',           // Optional: emailed when a submission arrives.
 };
 
 /**
@@ -41,14 +49,14 @@ var HEADERS = [
   'Submission ID', 'Timestamp', 'Member Name', 'Member Email', 'Membership ID',
   'Analysis Type', 'Goal', 'Notes', 'Status', 'Assigned Coach',
   'Coach Feedback', 'Coach Notes', 'Completion Date', 'Progress Rating',
-  'Video Filename', 'Video Placeholder',
+  'Video Filename', 'Video URL',
 ];
 
 var FIELDS = [
   'id', 'timestamp', 'memberName', 'memberEmail', 'membershipId',
   'analysisType', 'goal', 'notes', 'status', 'assignedCoach',
   'coachFeedback', 'coachNotes', 'completionDate', 'progressRating',
-  'videoFilename', 'videoPlaceholder',
+  'videoFilename', 'videoUrl',
 ];
 
 // Column numbers (1-based) for direct cell writes, derived from FIELDS.
@@ -122,9 +130,9 @@ function listSubmissions_(email) {
 }
 
 /**
- * Append one submission. Fills every field except the coach-only ones, defaults
- * Status, and records the video filename + placeholder (Drive upload = Phase 2).
- * Rejects duplicates and missing required fields.
+ * Append one submission (metadata only). The video is already in Drive; the
+ * portal passes its URL as `submission.videoUrl`. Fills every field except the
+ * coach-only ones and defaults Status. Rejects duplicates + missing fields.
  */
 function createSubmission_(input) {
   if (!input) throw new Error('Missing submission payload.');
@@ -156,9 +164,7 @@ function createSubmission_(input) {
     completionDate: '',
     progressRating: '',
     videoFilename: input.videoFilename ? String(input.videoFilename) : '',
-    // FUTURE (Google Drive, Phase 2): upload the video here and store its URL
-    // instead of this placeholder. Nothing else in the flow needs to change.
-    videoPlaceholder: input.videoPlaceholder ? String(input.videoPlaceholder) : 'PENDING_DRIVE_UPLOAD',
+    videoUrl: input.videoUrl ? String(input.videoUrl) : '',
   };
 
   getSheet_().appendRow(objectToRow_(record));
@@ -305,7 +311,7 @@ function notifyCoach_(record) {
         'Analysis:   ' + record.analysisType,
         'Goal:       ' + record.goal,
         'Notes:      ' + (record.notes || '—'),
-        'Video file: ' + (record.videoFilename || '—') + ' (upload pending — Phase 2)',
+        'Video:      ' + (record.videoUrl || '(no video)'),
         'Status:     ' + record.status,
       ].join('\n'),
     });

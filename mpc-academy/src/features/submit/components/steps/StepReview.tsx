@@ -126,7 +126,7 @@ export function StepReview({
       {submitting && (
         <div className="mt-8">
           <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium text-ink">Sending to your coach…</span>
+            <span className="font-medium text-ink">Uploading your video…</span>
             <span className="tabular-nums text-muted">{progress}%</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">

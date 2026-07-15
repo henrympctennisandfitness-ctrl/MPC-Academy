@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Quote } from "lucide-react";
+import { Quote, PlayCircle } from "lucide-react";
 import type { MemberSession } from "../store";
 
 /**
@@ -62,6 +62,18 @@ export function SessionTimeline({ sessions }: { sessions: MemberSession[] }) {
                       {s.coachNotes}
                     </p>
                   </div>
+                )}
+
+                {s.videoUrl && (
+                  <a
+                    href={s.videoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand hover:underline"
+                  >
+                    <PlayCircle size={15} />
+                    View your video
+                  </a>
                 )}
               </div>
             </div>

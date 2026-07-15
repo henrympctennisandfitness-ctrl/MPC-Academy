@@ -4,7 +4,12 @@
  * never reach into individual modules.
  */
 
-export { GOOGLE_SHEETS_CONFIG, isSheetsConfigured } from "./config";
+export {
+  GOOGLE_SHEETS_CONFIG,
+  GOOGLE_DRIVE_CONFIG,
+  isSheetsConfigured,
+  isDriveConfigured,
+} from "./config";
 export {
   createSubmission,
   fetchSubmissions,
@@ -13,11 +18,13 @@ export {
   updateFeedback,
   updateProgressRating,
   generateSubmissionId,
-  VIDEO_PLACEHOLDER,
 } from "./submissions";
+export { uploadVideoToDrive } from "./drive";
+export type { DriveUploadOptions } from "./drive";
 export type {
   Submission,
   SubmissionStatus,
   NewSubmissionInput,
+  DriveUploadResult,
   ServiceResult,
 } from "./types";

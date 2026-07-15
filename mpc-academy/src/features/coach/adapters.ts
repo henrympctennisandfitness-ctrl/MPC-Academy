@@ -96,7 +96,8 @@ export function toCoachSubmission(s: Submission): CoachSubmission {
     submittedAt: s.timestamp,
     status,
     notes: s.notes,
-    videoUrl: "#", // Phase 2 (Drive) replaces this with the real link
+    videoUrl: s.videoUrl || "",
+    videoFilename: s.videoFilename || "",
     feedback: s.coachFeedback || undefined,
     coachNotes: s.coachNotes || undefined,
     progressRating: typeof s.progressRating === "number" ? s.progressRating : null,

@@ -31,22 +31,43 @@ export interface Submission {
   completionDate: string;
   /** 0–100 rating the coach assigns on completion (empty string if unset). */
   progressRating: number | "";
-  /** Original video filename (Drive upload lands in Phase 2). */
+  /** Original filename of the uploaded video. */
   videoFilename: string;
-  /** Stand-in for the eventual Drive URL — see FUTURE hook in Code.gs. */
-  videoPlaceholder: string;
+  /**
+   * Google Drive URL of the uploaded video (empty until/unless a file is
+   * uploaded). Phase 3 stores the real Drive link here — this column was
+   * previously "Video Placeholder".
+   */
+  videoUrl: string;
 }
 
-/** The fields a member provides when creating a submission. */
+/**
+ * The metadata a member provides when creating a submission.
+ * The video itself is uploaded directly to Google Drive from the browser (see
+ * drive.ts) BEFORE this is called — Apps Script only ever receives metadata,
+ * never file bytes. `videoUrl`/`videoFilename` describe the already-uploaded clip.
+ */
 export interface NewSubmissionInput {
+  /** Optional pre-generated ID (so it can match the Drive filename). */
+  id?: string;
   memberName: string;
   memberEmail: string;
   membershipId: string;
   analysisType: string;
   goal: string;
   notes?: string;
-  /** The chosen clip's filename — the bytes are NOT uploaded in Phase 1. */
+  /** Drive URL of the already-uploaded video ("" when none). */
+  videoUrl?: string;
+  /** Original filename of the uploaded video. */
   videoFilename?: string;
+}
+
+/** Result of a direct-to-Drive video upload. */
+export interface DriveUploadResult {
+  /** Google Drive file ID. */
+  fileId: string;
+  /** Shareable Drive URL (…/file/d/<id>/view). */
+  videoUrl: string;
 }
 
 /** Uniform result shape every service call resolves to. */

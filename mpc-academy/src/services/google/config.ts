@@ -1,15 +1,18 @@
 /**
- * Google Sheets backend — configuration.
+ * Google backend — configuration.
  * ---------------------------------------------------------------------------
- * The single, easy-to-replace place that names WHERE the data lives:
- *   • appsScriptUrl  — the deployed Apps Script Web App (the whole backend)
- *   • spreadsheetId  — the Google Sheet that stores every submission
- *   • sheetName      — the tab within that spreadsheet
+ * Two independent Google integrations, each easy to replace:
  *
- * All three come from environment variables (see `.env.example`) via the shared
+ *   Sheets (via Apps Script) — the database + metadata API. Handles submissions,
+ *   coach feedback, status and progress ratings. NEVER handles video bytes.
+ *
+ *   Drive (direct from the browser) — resumable video upload, authorised with a
+ *   short-lived OAuth token from Google Identity Services.
+ *
+ * All values come from environment variables (see `.env.example`) via the shared
  * `GOOGLE_CONFIG` in `src/lib/config.ts`, so there is a single source of truth.
- * When none is set the service falls back to an in-memory mock (see mock.ts) so
- * the app is fully usable in development without any Google setup.
+ * When Sheets is unconfigured the service uses an in-memory mock; when Drive is
+ * unconfigured the upload step is skipped and only metadata is recorded.
  */
 
 import { GOOGLE_CONFIG } from "@/lib/config";
@@ -20,10 +23,25 @@ export const GOOGLE_SHEETS_CONFIG = {
   sheetName: GOOGLE_CONFIG.sheetName,
 } as const;
 
+export const GOOGLE_DRIVE_CONFIG = {
+  oauthClientId: GOOGLE_CONFIG.driveOAuthClientId,
+  rootFolderName: GOOGLE_CONFIG.driveRootFolderName,
+  sharing: GOOGLE_CONFIG.driveSharing,
+  maxUploadBytes: GOOGLE_CONFIG.maxUploadBytes,
+} as const;
+
 /**
  * True when a real Apps Script endpoint is configured. When false the service
  * transparently uses the in-memory mock so development never blocks on setup.
  */
 export function isSheetsConfigured(): boolean {
   return GOOGLE_SHEETS_CONFIG.appsScriptUrl.trim() !== "";
+}
+
+/**
+ * True when Drive uploads are configured (an OAuth Client ID is present). When
+ * false the submit flow skips the upload and records metadata only.
+ */
+export function isDriveConfigured(): boolean {
+  return GOOGLE_DRIVE_CONFIG.oauthClientId.trim() !== "";
 }
