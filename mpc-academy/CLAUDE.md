@@ -1,202 +1,91 @@
-# MPC Academy
-
-## Project Overview
-
-MPC Academy is a premium online tennis coaching platform.
-
-The experience should feel closer to Apple, WHOOP, Linear and Soho House than a traditional coaching website.
-
-The platform is mobile-first and complements an existing Squarespace website.
-
----
-
-# Tech Stack
-
-- Next.js
-- TypeScript
-- Tailwind CSS
-- Framer Motion
-- Vercel
-- Google Drive (planned)
-- Google Sheets (planned)
-- Google Apps Script (planned)
-
----
-
-# Authentication
-
-Authentication has intentionally NOT been implemented.
-
-Do NOT add:
-
-- Clerk
-- NextAuth
-- Supabase Auth
-- Firebase Auth
-- Auth0
-- Any authentication provider
-
-A mock role system is currently used.
-
-Real authentication will be implemented after the platform is feature complete.
-
----
-
-# Current Roles
-
-Henry Macdonald
-- Admin
-- Head Coach
-
-Calum Meston
-- Coach
-- Head Coach
-
-All other users
-- Academy Member
-
-Only Admins and Coaches may access the Coach Studio.
-
----
-
-# Current Features
-
-Completed
-
-- Member Dashboard
-- Coach Studio
-- Submit Analysis
-- Progress
-- Coaching Library
-- Member Profiles
-- Coach Feedback UI
-- Mock role system
-
-In Progress
-
-- Google Drive upload
-- Google Sheets integration
-
-Planned
-
-- Notifications
-- Authentication
-- Apple Wallet Membership
-- AI Coaching
-- Analytics
-
----
-
-# Design Philosophy
-
-Everything should feel:
-
-- Premium
-- Minimal
-- Fast
-- Modern
-- Private Club
-
-Inspired by:
-
-- Apple
-- WHOOP
-- Linear
-- Notion
-- Nike
-- Porsche
-- Soho House
-
-Avoid anything that looks generic or like Bootstrap.
-
----
-
-# Development Rules
-
-Always preserve the existing architecture.
-
-Do not rewrite unrelated files.
-
-Reuse components.
-
-Reuse Tailwind design tokens.
-
-Keep logic modular.
-
-Keep pages thin.
-
-Use feature-based architecture.
-
-No technical debt.
-
-If a file does not need changing, leave it untouched.
-
----
-
-# Google Integration
-
-Google Drive stores videos.
-
-Google Sheets stores metadata.
-
-Google Apps Script is the backend.
-
-Do NOT introduce a custom backend.
-
----
-
-# Coach Studio
-
-Only Henry and Calum can access.
-
-Members must never see:
-
-- Coach Dashboard
-- Coach Queue
-- Other Members
-
----
-
-# Member Portal
-
-Members should only see:
-
-- Dashboard
-- Submit Analysis
-- My Progress
-- Coaching Library
-- My Profile
-- Settings
-
----
-
-# Future Tasks
-
-Always build one major feature at a time.
-
-Suggested order:
-
-1. Google Drive upload
-2. Google Sheets integration
-3. Coach feedback persistence
-4. Member progress sync
-5. Notifications
-6. Authentication
-7. AI coaching
-8. Analytics
-
----
-
-# Every Task
-
-Before coding:
-
-- Read CLAUDE.md
-
-After coding provide:
-
-- Files Added
-- Files Modified
-- Dependencies Added
-- Dependencies Removed
-- Manual Steps
+# CLAUDE.md — MPC Academy V2 governance
+
+Read this before making changes. It records the V2 architecture, the current
+phase status, and the rules that constrain work in this repo.
+
+## What this project is
+
+MPC Academy — a premium tennis-coaching membership web app (Next.js 15 App
+Router, React 19, TypeScript, Tailwind). It is migrating from a prototype to a
+governed V2 across six phases.
+
+## Fixed architecture
+
+| Layer | Authority |
+|-------|-----------|
+| Squarespace | Membership / payment authority (Phase 2) |
+| MPC internal UUID (`app_users.id`) | Application ownership identity |
+| Supabase / Postgres | Application state |
+| Cloudflare Stream | Private video infrastructure (Phase 3) |
+| Coach Studio | Operational coaching interface |
+
+Identity is **auth-provider agnostic**: `app_users.id` is our own UUID, never a
+Supabase Auth id, email, name, or Squarespace customer id. The external identity
+mechanism can change without rewriting submissions/reviews/entitlements/future
+features.
+
+## Phase status
+
+- **Phase 1 — Foundation: COMPLETE (this repo).** Schema, RLS, entitlements,
+  state machine, provider-abstracted video metadata, repository seam, security
+  audit, docs. The **live UI is unchanged** and does not require Supabase.
+- Phases 2–6: not started. See `docs/PHASES.md`.
+
+## Rules (do not violate without explicit approval)
+
+1. **No premature tables.** Do not create Phase 4–6 tables (messaging, bookings,
+   notifications, content, challenges, library) until their phase.
+2. **Do not switch the live UI to Supabase yet.** Keep the repository seam:
+   UI → interface → seed impl (now); interface → Supabase impl (separately).
+   The app must run with no live Supabase project.
+3. **RLS is mandatory.** Enabled on every table, never disabled as a workaround,
+   no production bypass. Service-role key is server-only, never in the browser,
+   never `NEXT_PUBLIC_`.
+4. **Entitlements are enforced in the database** (atomic `used < allowance`).
+   Frontend checks are advisory only. Consume/restore rules are documented in
+   `docs/DATABASE.md`; an abandoned upload must never permanently consume a unit.
+5. **State machine is enforced.** Members can never set `IN_REVIEW`/`COMPLETED`.
+   Transitions go through `transition_submission()`.
+6. **Video is provider-abstracted.** No Google-Drive-specific design; no
+   permanent public playback URLs as the long-term design.
+7. **Retention stays unset.** No invented legal retention periods; placeholders
+   only until MPC approves (`docs/PRIVACY-RETENTION.md`).
+8. **Legacy Google is frozen.** Leave it functioning; do not expand or delete it.
+   Security limitations are documented in `docs/SECURITY.md`.
+9. **No real member data.** Fictional seed identities only in Phase 1.
+10. **Approved folders for foundation work:** `supabase/`, `src/services/`, `docs/`.
+11. **Secrets:** never print secret values; if rotation is needed, name the
+    credential *type*, not the value.
+
+## Where things live
+
+```
+supabase/         migrations (0001–0006), seed.sql, config.toml, README.md
+src/services/     repository seam (identity, members, submissions, reviews,
+                  entitlements, database) — client-safe barrels; server-only
+                  modules imported directly (never via barrel)
+docs/             ARCHITECTURE, DATABASE, SECURITY, PRIVACY-RETENTION,
+                  MIGRATION, PHASES
+```
+
+Client-safe vs server-only: barrels never re-export the Supabase client factory
+or the Supabase repositories. Import those directly in server code.
+
+## Environment
+
+See `.env.example`. Categories: PUBLIC (`NEXT_PUBLIC_SUPABASE_*`), SERVER-ONLY
+(`SUPABASE_SERVICE_ROLE_KEY`), RETENTION placeholders (blank), LEGACY
+(`NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL`). The app runs with none of them set.
+
+## Commands
+
+```
+npm run dev         # run the app (seed data path)
+npm run type-check  # tsc --noEmit
+npm run lint        # next lint
+npm run build       # next build
+npm run test        # vitest run (pure unit tests; no DB/network)
+```
+
+RLS and the Supabase repositories require a live database and are verified
+separately — they are not part of the Vitest suite.
