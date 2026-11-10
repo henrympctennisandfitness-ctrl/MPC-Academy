@@ -33,10 +33,15 @@ retention value in the schema and environment is a deliberate placeholder.
 | Class | Location (target) | Notes |
 |-------|-------------------|-------|
 | VIDEO | `video_assets` → Cloudflare Stream (Phase 3) | Private playback; no permanent public URL as design. Legacy Drive links are a documented exception being retired. |
-| FEEDBACK | `coach_reviews`, `review_annotations` | Coaching output tied to a submission. |
+| FEEDBACK | `coach_reviews`, `review_annotations`, `coach_review_private_notes` (0011) | Coaching output tied to a submission. Private notes are staff-only. |
 | SUBMISSION | `submissions` | Request metadata + status. |
 | TECH_LOG | `audit_events` (+ platform logs) | Keep free of secrets/personal data. |
 | INACTIVE_MEMBER | `app_users` / `member_access` | Handling defined when MPC sets retention. |
+
+Migrations 0001–0011 have been applied to the Supabase **development** database,
+and the revised Phase 2B RLS integration test passed there, as reported by the
+user who ran them. They have not been applied to production, and authentication
+integration is not complete.
 
 ## Before production (MPC to complete)
 

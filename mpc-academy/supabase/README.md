@@ -1,5 +1,18 @@
 # Supabase (Phase 1 Foundation)
 
+> **Phase 2B update (Nov 2026):** migrations now run `0001` → `0011`
+> (`0007`–`0011` are Phase 2B: Supabase Auth identity mapping, entitlement-gated
+> RLS, function-privilege hardening, role-check recursion fix, explicit table
+> privileges and private coach notes). Identity now comes
+> from the verified Supabase JWT (`auth.uid()`), not the `app.current_member_id`
+> GUC described below. Key names: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
+> `SUPABASE_SECRET_KEY`. Apply one file at a time; RLS tests live in
+> `supabase/tests/`. `0001`–`0011` have been applied to the Supabase
+> **development** database, and the revised Phase 2B RLS integration test passed
+> there, as reported by the user who ran them. They have not been applied to
+> production, and authentication integration is not complete. See
+> `docs/phase-2b-authentication.md`.
+
 This directory holds the database foundation for MPC Academy V2. **Nothing here
 is wired into the live app yet** (decision B): the running UI still uses the
 seed repositories. This is the migration seam only.

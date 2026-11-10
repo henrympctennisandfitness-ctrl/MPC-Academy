@@ -32,8 +32,12 @@ Resolvers (SQL): `current_app_user_id()` reads the `app.current_member_id` GUC
 - **video_assets** — provider-abstracted (decision G): `provider`, `external_id`,
   `playback_ref`, `legacy_public_url` (Google-only; a documented limitation, not
   the long-term design), `status`. No permanent public URL is the design intent.
-- **coach_reviews** — `submission_id`, `coach_id`, `feedback`, `coach_notes`,
-  `completed_at`.
+- **coach_reviews** — `submission_id`, `coach_id`, `feedback`, `completed_at`,
+  and (0011) `published_at`, `published_by`. Members see a review only
+  once a coach has deliberately published it. `coach_notes` is deprecated by 0011
+  and constrained to stay NULL.
+- **coach_review_private_notes** (0011) — `review_id` (pk), `body`,
+  `author_id`. Internal coach notes; COACH/ADMIN only by row policy.
 - **review_annotations** — `review_id`, optional `t_ms` (video timestamp), `body`.
 
 ### Entitlements (0004)
@@ -118,8 +122,31 @@ is tracked on the submission via `consumed_at` / `consumption_released_at`.
 
 ## RLS summary
 
-RLS is enabled on **all 12 tables** (0006). See `docs/SECURITY.md` for the policy
-model and Phase-2 dependency. RLS is never disabled; there is no production bypass.
+RLS is enabled on the 12 tables listed in 0006. Migration 0011 adds
+`entitlement_plans` and `coach_review_private_notes`, making 14. See
+`docs/SECURITY.md` for the policy model and Phase-2 dependency. RLS is never
+disabled; there is no production bypass.
+
+## Table privileges (0011)
+
+Migrations 0001–0011 have been applied to the Supabase **development** database,
+and the revised Phase 2B RLS integration test passed there, as reported by the
+user who ran them. They have not been applied to production.
+
+Table grants are checked before RLS, and `BYPASSRLS` does not replace them. 0011
+states every privilege explicitly and grants nothing else:
+
+| Role | Table | Privileges |
+|------|-------|------------|
+| `anon` | all | none |
+| `authenticated` | `submissions` | SELECT |
+| `authenticated` | `coach_reviews` | SELECT on published columns (never `coach_notes`, `published_by`) |
+| `authenticated` | `coach_review_private_notes` | SELECT (row policy: COACH/ADMIN) |
+| `service_role` | `app_users` | SELECT, INSERT |
+| `service_role` | `member_access`, `user_roles` | SELECT, INSERT, UPDATE |
+| `service_role` | `audit_events` | INSERT |
+
+New tables start with no access; each migration must grant explicitly.
 
 ## Testing note
 
